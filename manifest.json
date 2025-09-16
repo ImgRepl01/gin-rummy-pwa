@@ -2,7 +2,7 @@
 "name": "Gin Rummy",
 "short_name": "Gin Rummy",
 "description": "A simple game of Gin Rummy to play against the computer.",
-"start_url": "./gin_rummy.html",
+"start_url": "./index.html",
 "display": "standalone",
 "background_color": "#f3f4f6",
 "theme_color": "#2563eb",
