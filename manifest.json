@@ -1,0 +1,21 @@
+{
+"name": "Gin Rummy",
+"short_name": "Gin Rummy",
+"description": "A simple game of Gin Rummy to play against the computer.",
+"start_url": "./gin_rummy.html",
+"display": "standalone",
+"background_color": "#f3f4f6",
+"theme_color": "#2563eb",
+"icons": [
+{
+"src": "https://www.google.com/search?q=https://placehold.co/192x192/0d47a1/ffffff%3Ftext%3DGR",
+"sizes": "192x192",
+"type": "image/png"
+},
+{
+"src": "https://www.google.com/search?q=https://placehold.co/512x512/0d47a1/ffffff%3Ftext%3DGR",
+"sizes": "512x512",
+"type": "image/png"
+}
+]
+}

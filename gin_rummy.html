@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gin Rummy</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 42rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1f2937;
+            text-align: center;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .game-info {
+            text-align: center;
+        }
+
+        .game-status {
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .deck-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .pile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pile-label {
+            font-weight: 500;
+        }
+
+        /* The container for the stockpile and discard pile cards now matches the cards' final size */
+        .pile-card-container {
+            width: 3.5rem;
+            height: 4.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .player-hand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hand-container {
+            display: flex;
+            overflow-x: auto;
+            overflow-y: hidden; /* Added to fix the vertical scrollbar */
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #4b5563;
+            text-align: center;
+        }
+        
+        /* The base card dimensions now account for padding */
+        .card {
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.125rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            width: 2.5rem;
+            height: 3.5rem;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-0.25rem);
+        }
+        
+        /* The card back now matches the card's final size */
+        .card-back {
+            border: 1px solid #444;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            width: 2.5rem;
+            height: 3.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #eee;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            
+            /* Card back design */
+            background-color: #0d47a1;
+            background-image: linear-gradient(45deg, rgba(255,255,255,.2) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.2) 75%, rgba(255,255,255,.2)), linear-gradient(45deg, rgba(255,255,255,.2) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.2) 75%, rgba(255,255,255,.2));
+            background-size: 8px 8px;
+            background-position: 0 0, 4px 4px;
+        }
+
+        .card-back:hover {
+            transform: translateY(-0.25rem);
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-blue {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-blue:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .btn-red {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .btn-red:hover {
+            background-color: #b91c1c;
+        }
+
+        .btn-green {
+            background-color: #16a34a;
+            color: white;
+        }
+        
+        .btn-green:hover {
+            background-color: #15803d;
+        }
+
+        .btn-disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .card-selected {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px #2563eb;
+        }
+        
+        /* Message box styles */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .message-box h3 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .message-box p {
+            margin-bottom: 1.5rem;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        
+        #deadwoodCounter {
+            font-weight: 500;
+            color: #4b5563;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        
+        /* How to Play screen styles */
+        #howToPlayContainer {
+            display: none;
+            text-align: left;
+            padding: 2rem;
+        }
+
+        #howToPlayContainer h2 {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        #howToPlayContainer p {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        #howToPlayContainer ul {
+            list-style: disc;
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        #howToPlayContainer li {
+            margin-bottom: 0.5rem;
+        }
+
+        .score-display {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+        
+        /* Responsive styles */
+        @media (min-width: 640px) {
+            .buttons {
+                flex-direction: row;
+            }
+            .hands {
+                flex-direction: row;
+            }
+        }
+    </style>
+    <!-- Add this line to link to the manifest file -->
+    <link rel="manifest" href="manifest.json">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="container">
+        
+        <!-- Game Screen -->
+        <div id="gameContainer">
+            <h1>Gin Rummy</h1>
+
+            <div class="score-display">
+                <div class="score-item">
+                    Your Score: <span id="playerTotalScoreDisplay">0</span>
+                </div>
+                <div class="score-item">
+                    Opponent Score: <span id="opponentTotalScoreDisplay">0</span>
+                </div>
+            </div>
+
+            <div class="game-area">
+                <div class="game-info">
+                    <p id="gameStatus" class="game-status">Press "Start Game" to begin!</p>
+                </div>
+                
+                <!-- Deck and Discard Pile -->
+                <div class="deck-info">
+                    <div class="pile">
+                        <span class="pile-label">Stockpile</span>
+                        <div id="stockpileContainer" class="pile-card-container">
+                            <!-- Stockpile card back -->
+                        </div>
+                    </div>
+                    <div class="pile">
+                        <span class="pile-label">Discard Pile</span>
+                        <div id="discardPileContainer" class="pile-card-container">
+                            <!-- Discard pile top card -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Player's Hand -->
+                <div class="player-hand">
+                    <h2>Your Hand</h2>
+                    <div id="playerHandContainer" class="hand-container">
+                        <!-- Player cards will be dynamically added here -->
+                    </div>
+                    <div id="deadwoodCounter" class="mt-4"></div>
+                    <div class="buttons mt-4">
+                        <button id="knockButton" class="btn btn-green hidden">Knock</button>
+                    </div>
+                </div>
+
+                <!-- Game Control Buttons -->
+                <div class="buttons">
+                    <button id="startButton" class="btn btn-blue">Start Game</button>
+                    <button id="startNewRoundButton" class="btn btn-red hidden">Start New Round</button>
+                    <button id="resetMatchButton" class="btn btn-red hidden">Reset Match</button>
+                    <button id="showHowToPlayButton" class="btn btn-blue">How to Play</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- How to Play Screen -->
+        <div id="howToPlayContainer">
+            <h2>How to Play Gin Rummy</h2>
+            <p>The goal of Gin Rummy is to get rid of as many cards as possible from your hand by forming **melds** and having a low **deadwood** count. The first player to reach **100 points** wins the match.</p>
+            
+            <h3>What are Melds?</h3>
+            <p>Melds are groups of three or more cards that fit one of two categories:</p>
+            <ul>
+                <li><strong>Sets:</strong> Three or four cards of the same rank (e.g., three 7s or four Aces).</li>
+                <li><strong>Runs:</strong> Three or more cards of the same suit in a sequence (e.g., the 4, 5, and 6 of Spades).</li>
+            </ul>
+
+            <h3>Deadwood</h3>
+            <p>Deadwood refers to any card in your hand that is not part of a meld. The value of a card is its face value (Ace = 1, 2-10 = face value), and all face cards (Jack, Queen, King) are worth 10 points. Your goal is to have the lowest possible deadwood score.</p>
+            
+            <h3>Your Turn</h3>
+            <p>On your turn, you must perform two actions:</p>
+            <ol>
+                <li><strong>Draw a Card:</strong> You can either take the top card from the face-down <strong>Stockpile</strong> or the top card from the face-up <strong>Discard Pile</strong>. To draw, simply double-click the pile you want to take from.</li>
+                <li><strong>Discard a Card:</strong> After drawing, you must place one card from your hand onto the Discard Pile. To do this, simply double-click the card you wish to discard from your hand.</li>
+            </ol>
+            
+            <h3>Knocking</h3>
+            <p>When your deadwood score is **10 points or less**, you can **Knock** to end the round. To knock, just click the "Knock" button. You do not have to discard a card on the turn you knock. The goal is to have a lower deadwood score than your opponent.</p>
+            
+            <div class="buttons">
+                <button id="returnToGameButton" class="btn btn-blue">Return to Gin Rummy</button>
+            </div>
+        </div>
+    
+    <!-- Message box -->
+    <div id="messageBoxOverlay" class="overlay hidden" style="display: none;">
+        <div id="messageBox" class="message-box hidden" style="display: none;">
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseButton" class="btn btn-blue">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Register the service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((registration) => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                }).catch((error) => {
+                    console.error('Service Worker registration failed:', error);
+                });
+            });
+        }
+        
+        // --- Card Data ---
+        // Using Unicode characters instead of emojis for consistent color styling
+        const suits = ['\u2660', '\u2665', '\u2666', '\u2663'];
+        const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        const rankValues = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10 };
+
+        // --- Game State Variables ---
+        let deck = [];
+        let playerHand = [];
+        let opponentHand = [];
+        let discardPile = [];
+        let currentPlayer = 'player'; // 'player' or 'opponent'
+        let selectedCard = null; // No longer used for discarding, but still for visual selection
+        let playerTotalScore = 0;
+        let opponentTotalScore = 0;
+
+        // --- DOM Elements ---
+        const gameContainer = document.getElementById('gameContainer');
+        const howToPlayContainer = document.getElementById('howToPlayContainer');
+        const stockpileContainer = document.getElementById('stockpileContainer');
+        const discardPileContainer = document.getElementById('discardPileContainer');
+        const playerHandContainer = document.getElementById('playerHandContainer');
+        const deadwoodCounter = document.getElementById('deadwoodCounter');
+        const gameStatusElement = document.getElementById('gameStatus');
+        const knockButton = document.getElementById('knockButton');
+        const startButton = document.getElementById('startButton');
+        const startNewRoundButton = document.getElementById('startNewRoundButton');
+        const resetMatchButton = document.getElementById('resetMatchButton');
+        const showHowToPlayButton = document.getElementById('showHowToPlayButton');
+        const returnToGameButton = document.getElementById('returnToGameButton');
+        const playerTotalScoreDisplay = document.getElementById('playerTotalScoreDisplay');
+        const opponentTotalScoreDisplay = document.getElementById('opponentTotalScoreDisplay');
+
+        // Message box elements
+        const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+        const messageBox = document.getElementById('messageBox');
+        const messageBoxTitle = document.getElementById('messageBoxTitle');
+        const messageBoxContent = document.getElementById('messageBoxContent');
+        const messageBoxCloseButton = document.getElementById('messageBoxCloseButton');
+
+
+        // --- UI Control Functions ---
+        function showMessageBox(title, content, showResetMatchButton = false) {
+            messageBoxTitle.textContent = title;
+            messageBoxContent.innerHTML = content;
+            messageBoxOverlay.style.display = 'block';
+            messageBox.style.display = 'block';
+            if (showResetMatchButton) {
+                startNewRoundButton.classList.add('hidden');
+                resetMatchButton.classList.remove('hidden');
+            } else {
+                startNewRoundButton.classList.remove('hidden');
+                resetMatchButton.classList.add('hidden');
+            }
+        }
+
+        function hideMessageBox() {
+            messageBoxOverlay.style.display = 'none';
+            messageBox.style.display = 'none';
+        }
+
+        function showScreen(screenId) {
+            gameContainer.style.display = 'none';
+            howToPlayContainer.style.display = 'none';
+
+            if (screenId === 'game') {
+                gameContainer.style.display = 'block';
+            } else if (screenId === 'howToPlay') {
+                howToPlayContainer.style.display = 'block';
+            }
+        }
+
+        function showKnockButton() {
+            const { score } = calculateDeadwood(playerHand);
+            if (score <= 10) {
+                knockButton.classList.remove('hidden');
+            } else {
+                knockButton.classList.add('hidden');
+            }
+        }
+        
+        // --- Core Functions ---
+
+        /**
+         * Creates a new, unshuffled deck.
+         */
+        function createDeck() {
+            deck = [];
+            playerHand = [];
+            opponentHand = [];
+            discardPile = [];
+            for (const suit of suits) {
+                for (const rank of ranks) {
+                    deck.push({ suit, rank });
+                }
+            }
+        }
+
+        /**
+         * Shuffles the deck using the Fisher-Yates algorithm.
+         */
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        /**
+         * Renders a single card element.
+         * @param {object} card - The card object to render.
+         * @returns {HTMLElement} The card div element.
+         */
+        function renderCard(card) {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
+            const suitColor = (card.suit === '\u2665' || card.suit === '\u2666') ? '#dc2626' : 'black';
+            cardElement.innerHTML = `
+                <div class="w-full text-left text-xs" style="color: ${suitColor};">${card.rank}</div>
+                <div class="text-xl" style="color: ${suitColor};">${card.suit}</div>
+                <div class="w-full text-right text-xs" style="color: ${suitColor};">${card.rank}</div>
+            `;
+            return cardElement;
+        }
+
+        /**
+         * Renders a card back element.
+         * @returns {HTMLElement} The card back div element.
+         */
+        function renderCardBack() {
+            const cardBackElement = document.createElement('div');
+            cardBackElement.className = 'card-back';
+            return cardBackElement;
+        }
+
+        /**
+         * Renders the player's hand and adds click listeners.
+         */
+        function renderPlayerHand() {
+            playerHandContainer.innerHTML = '';
+            playerHand.sort((a, b) => rankValues[a.rank] - rankValues[b.rank]); // Sort hand for display
+            playerHand.forEach(card => {
+                const cardElement = renderCard(card);
+                cardElement.dataset.suit = card.suit;
+                cardElement.dataset.rank = card.rank;
+                
+                // Double-click to discard a card
+                cardElement.addEventListener('dblclick', () => {
+                    handleDiscard(card);
+                });
+                
+                // Single-click for visual selection
+                cardElement.addEventListener('click', () => {
+                    if (playerHand.length !== 11) return; // Only allow selection if a card has been drawn
+                    
+                    const prevSelected = document.querySelector('.card-selected');
+                    if (prevSelected) prevSelected.classList.remove('card-selected');
+                    
+                    selectedCard = card;
+                    cardElement.classList.add('card-selected');
+                });
+
+                playerHandContainer.appendChild(cardElement);
+            });
+        }
+
+        /**
+         * Renders the stockpile and discard pile.
+         */
+        function renderPiles() {
+            // Stockpile
+            stockpileContainer.innerHTML = '';
+            if (deck.length > 0) {
+                const cardBackElement = renderCardBack();
+                stockpileContainer.appendChild(cardBackElement);
+            }
+
+            // Discard Pile
+            discardPileContainer.innerHTML = '';
+            if (discardPile.length > 0) {
+                const topDiscard = discardPile[discardPile.length - 1];
+                const cardElement = renderCard(topDiscard);
+                discardPileContainer.appendChild(cardElement);
+            }
+        }
+
+        /**
+         * Main function to update all UI elements.
+         * @param {object} [highlightCard] - The card to highlight after rendering.
+         */
+        function updateDisplay(highlightCard = null) {
+            renderPlayerHand();
+            renderPiles();
+            
+            // Update deadwood counter
+            if (playerHand.length > 0) {
+                const { score } = calculateDeadwood(playerHand);
+                deadwoodCounter.textContent = `Deadwood: ${score}`;
+            } else {
+                deadwoodCounter.textContent = '';
+            }
+
+            // Update total scores
+            playerTotalScoreDisplay.textContent = playerTotalScore;
+            opponentTotalScoreDisplay.textContent = opponentTotalScore;
+
+            if (highlightCard) {
+                const cardElements = playerHandContainer.querySelectorAll('.card');
+                cardElements.forEach(el => {
+                    if (el.dataset.suit === highlightCard.suit && el.dataset.rank === highlightCard.rank) {
+                        el.classList.add('card-selected');
+                        selectedCard = highlightCard; // Set the selected card
+                    }
+                });
+            }
+        }
+
+        /**
+         * Checks a hand for melds (sets and runs).
+         * This version uses a greedy approach and may not find the optimal meld combination.
+         * @param {array} hand The hand of cards to check.
+         * @returns {array} An array of meld arrays.
+         */
+        function checkForMelds(hand) {
+            const melds = [];
+            const cardsInMelds = new Set();
+            
+            // Step 1: Check for Sets
+            const rankCounts = {};
+            hand.forEach(card => {
+                rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
+            });
+
+            for (const rank in rankCounts) {
+                if (rankCounts[rank] >= 3) {
+                    const set = hand.filter(card => card.rank === rank && !cardsInMelds.has(card));
+                    if (set.length >= 3) {
+                        melds.push(set);
+                        set.forEach(card => cardsInMelds.add(card));
+                    }
+                }
+            }
+
+            // Step 2: Check for Runs
+            const sortedHand = [...hand].sort((a, b) => rankValues[a.rank] - rankValues[b.rank]);
+            const suitGroups = {};
+            suits.forEach(suit => suitGroups[suit] = []);
+            sortedHand.forEach(card => suitGroups[card.suit].push(card));
+
+            for (const suit in suitGroups) {
+                const group = suitGroups[suit].filter(card => !cardsInMelds.has(card));
+                if (group.length < 3) continue;
+
+                let currentRun = [group[0]];
+                for (let i = 1; i < group.length; i++) {
+                    const prevCardValue = rankValues[group[i-1].rank];
+                    const currentCardValue = rankValues[group[i].rank];
+                    
+                    if (currentCardValue === prevCardValue + 1) {
+                        currentRun.push(group[i]);
+                    } else if (currentCardValue !== prevCardValue) {
+                        if (currentRun.length >= 3) {
+                            melds.push(currentRun);
+                            currentRun.forEach(card => cardsInMelds.add(card));
+                        }
+                        currentRun = [group[i]];
+                    }
+                }
+                if (currentRun.length >= 3) {
+                    melds.push(currentRun);
+                    currentRun.forEach(card => cardsInMelds.add(card));
+                }
+            }
+            return melds;
+        }
+
+        /**
+         * Calculates the deadwood score of a hand.
+         * @param {array} hand - The hand of cards.
+         * @returns {object} An object containing the score and the deadwood cards.
+         */
+        function calculateDeadwood(hand) {
+            const melds = checkForMelds(hand);
+            const meldCards = new Set(melds.flat());
+            const deadwood = hand.filter(card => !meldCards.has(card));
+            const score = deadwood.reduce((sum, card) => sum + rankValues[card.rank], 0);
+            return { score, deadwood };
+        }
+
+        /**
+         * Handles the player's choice to draw from the stockpile.
+         */
+        function handleDrawFromStock() {
+            if (playerHand.length !== 10) {
+                gameStatusElement.textContent = "You have already drawn a card. Please discard one.";
+                return;
+            }
+            if (currentPlayer !== 'player') return;
+            
+            if (deck.length === 0) {
+                gameStatusElement.textContent = "The stockpile is empty!";
+                return;
+            }
+            
+            const drawnCard = deck.shift();
+            playerHand.push(drawnCard);
+            gameStatusElement.textContent = "You drew a card. Now, double-click one to discard or Knock.";
+            
+            showKnockButton();
+            updateDisplay(drawnCard);
+        }
+
+        /**
+         * Handles the player's choice to take from the discard pile.
+         */
+        function handleDrawFromDiscard() {
+            if (playerHand.length !== 10) {
+                gameStatusElement.textContent = "You have already drawn a card. Please discard one.";
+                return;
+            }
+            if (currentPlayer !== 'player') return;
+
+            if (discardPile.length === 0) {
+                gameStatusElement.textContent = "The discard pile is empty!";
+                return;
+            }
+
+            const drawnCard = discardPile.pop();
+            playerHand.push(drawnCard);
+            gameStatusElement.textContent = "You took the discard card. Now, double-click one to discard or Knock.";
+            
+            showKnockButton();
+            updateDisplay(drawnCard);
+        }
+        
+        /**
+         * Handles the player's discard action.
+         * @param {object} cardToDiscard - The card object to discard.
+         */
+        function handleDiscard(cardToDiscard) {
+            if (playerHand.length !== 11) {
+                gameStatusElement.textContent = "You need to draw a card first.";
+                return;
+            }
+            if (currentPlayer !== 'player') return;
+            
+            const discardIndex = playerHand.findIndex(card => card.rank === cardToDiscard.rank && card.suit === cardToDiscard.suit);
+            if (discardIndex === -1) {
+                gameStatusElement.textContent = "Selected card not found in hand.";
+                return;
+            }
+
+            const discardedCard = playerHand.splice(discardIndex, 1)[0];
+            discardPile.push(discardedCard);
+            selectedCard = null;
+
+            knockButton.classList.add('hidden');
+            
+            gameStatusElement.textContent = "You discarded a card. It is now the opponent's turn.";
+            updateDisplay();
+            
+            currentPlayer = 'opponent';
+            setTimeout(handleOpponentTurn, 2000); // Wait 2 seconds before AI turn
+        }
+        
+        /**
+         * Handles the player's knock action.
+         */
+        function handleKnock() {
+            if (playerHand.length !== 10) { // Knock is only valid with 10 cards
+                showMessageBox("Invalid Knock", "You must have discarded a card to knock.");
+                return;
+            }
+            
+            const { score: playerDeadwood } = calculateDeadwood(playerHand);
+            if (playerDeadwood > 10) {
+                showMessageBox("Invalid Knock", `Your deadwood score is too high: ${playerDeadwood}. You can only knock with 10 or less.`);
+                return;
+            }
+            
+            endGame("player", playerDeadwood);
+        }
+
+        /**
+         * Handles the opponent's turn.
+         */
+        function handleOpponentTurn() {
+            // Check for potential knock first
+            const { score: currentDeadwood } = calculateDeadwood(opponentHand);
+            if (currentDeadwood <= 10) {
+                return endGame("opponent", currentDeadwood);
+            }
+
+            const discardCard = discardPile.length > 0 ? discardPile[discardPile.length - 1] : null;
+            let drawnCard;
+
+            // Simple AI Logic:
+            if (discardCard) {
+                const tempHand = [...opponentHand, discardCard];
+                const melds = checkForMelds(tempHand);
+                if (melds.length > 0) {
+                    drawnCard = discardPile.pop();
+                    opponentHand.push(drawnCard);
+                    gameStatusElement.textContent = "Opponent took the discard pile card.";
+                }
+            }
+
+            // If not useful, or discard pile is empty, draw from stockpile
+            if (!drawnCard) {
+                if (deck.length > 0) {
+                    drawnCard = deck.shift();
+                    opponentHand.push(drawnCard);
+                    gameStatusElement.textContent = "Opponent drew from the stockpile.";
+                } else {
+                    gameStatusElement.textContent = "The stockpile is empty. The game might be over soon.";
+                }
+            }
+
+            updateDisplay(); // Update display after draw
+
+            setTimeout(() => {
+                // Opponent discards the highest-value deadwood card
+                const opponentMelds = checkForMelds(opponentHand);
+                const meldCards = new Set(opponentMelds.flat());
+                const deadwood = opponentHand.filter(card => !meldCards.has(card));
+                
+                let cardToDiscard;
+                if (deadwood.length > 0) {
+                    // Find the highest-value deadwood card to discard
+                    deadwood.sort((a, b) => rankValues[b.rank] - rankValues[a.rank]);
+                    cardToDiscard = deadwood[0];
+                } else {
+                    // If no deadwood, discard a card that's part of a meld (this is rare, but a fallback)
+                    cardToDiscard = opponentHand[0];
+                }
+
+                const discardIndex = opponentHand.findIndex(card => card.rank === cardToDiscard.rank && card.suit === cardToDiscard.suit);
+                const discardedCard = opponentHand.splice(discardIndex, 1)[0];
+                discardPile.push(discardedCard);
+
+                updateDisplay(); // Update display after discard
+                
+                gameStatusElement.textContent = `Opponent discarded ${discardedCard.rank}${discardedCard.suit}. It is now your turn.`;
+                currentPlayer = 'player';
+            }, 1000); // Wait 1 second before AI discards
+        }
+        
+        /**
+         * Ends the round and displays the results.
+         * @param {string} knocker - The player who knocked ('player' or 'opponent').
+         * @param {number} knockerDeadwood - The deadwood score of the knocker.
+         */
+        function endGame(knocker, knockerDeadwood) {
+            let playerDeadwood = calculateDeadwood(playerHand).score;
+            let opponentDeadwood = calculateDeadwood(opponentHand).score;
+            
+            let roundScore = 0;
+            let message = "";
+            let title = "";
+
+            if (knocker === 'player') {
+                roundScore = opponentDeadwood - knockerDeadwood;
+                if (knockerDeadwood === 0) {
+                    roundScore += 25; // Gin bonus
+                    title = "Gin!";
+                    message = `You got a Gin! You score ${roundScore} points this round.`;
+                    playerTotalScore += roundScore;
+                } else if (opponentDeadwood <= knockerDeadwood) {
+                    // Undercut
+                    title = "Undercut!";
+                    roundScore = knockerDeadwood - opponentDeadwood + 25;
+                    message = `The opponent's deadwood was less than yours! You were undercut. Opponent gets a bonus of 25 plus the score difference. Opponent scores ${roundScore} points.`;
+                    opponentTotalScore += roundScore;
+                }
+                else {
+                    title = "You Knocked!";
+                    message = `You knocked with ${knockerDeadwood} deadwood. The opponent had ${opponentDeadwood} deadwood. You score ${roundScore} points this round.`;
+                    playerTotalScore += roundScore;
+                }
+            } else { // Opponent knocked
+                roundScore = playerDeadwood - knockerDeadwood;
+                if (knockerDeadwood === 0) {
+                    roundScore += 25;
+                    title = "Opponent Got Gin!";
+                    message = `The opponent got a Gin! They score ${roundScore} points this round.`;
+                    opponentTotalScore += roundScore;
+                }
+                else {
+                    title = "Opponent Knocked";
+                    message = `The opponent knocked with ${knockerDeadwood} deadwood. You had ${playerDeadwood} deadwood. The opponent scores ${roundScore} points this round.`;
+                    opponentTotalScore += roundScore;
+                }
+            }
+            
+            updateDisplay();
+
+            // Check for match winner
+            if (playerTotalScore >= 100) {
+                showMessageBox("You Win!", `Congratulations! You have reached ${playerTotalScore} points and won the match!`, true);
+            } else if (opponentTotalScore >= 100) {
+                showMessageBox("You Lose", `The opponent has reached ${opponentTotalScore} points and won the match.`, true);
+            } else {
+                showMessageBox(title, message);
+            }
+            
+            // Hide game buttons
+            knockButton.classList.add('hidden');
+            startButton.classList.add('hidden');
+        }
+
+        /**
+         * Initializes the game state for a new round.
+         */
+        function startNewRound() {
+            hideMessageBox(); 
+            createDeck();
+            shuffleDeck();
+
+            for (let i = 0; i < 10; i++) {
+                playerHand.push(deck.shift());
+                opponentHand.push(deck.shift());
+            }
+
+            discardPile.push(deck.shift());
+
+            startButton.classList.add('hidden');
+            startNewRoundButton.classList.add('hidden');
+            resetMatchButton.classList.add('hidden');
+            
+            gameStatusElement.textContent = "It is your turn. Double-click the stockpile or discard pile to draw a card.";
+            updateDisplay();
+        }
+
+        function resetMatch() {
+            playerTotalScore = 0;
+            opponentTotalScore = 0;
+            startNewRound();
+        }
+
+        // --- Event Listeners ---
+        startButton.addEventListener('click', startNewRound);
+        startNewRoundButton.addEventListener('click', startNewRound);
+        resetMatchButton.addEventListener('click', resetMatch);
+        
+        stockpileContainer.addEventListener('dblclick', handleDrawFromStock);
+        discardPileContainer.addEventListener('dblclick', handleDrawFromDiscard);
+        
+        knockButton.addEventListener('click', handleKnock);
+        messageBoxCloseButton.addEventListener('click', hideMessageBox);
+
+        // --- Screen Navigation ---
+        showHowToPlayButton.addEventListener('click', () => showScreen('howToPlay'));
+        returnToGameButton.addEventListener('click', () => showScreen('game'));
+
+        // Initially show the game screen
+        showScreen('game');
+    </script>
+</body>
+</html>
