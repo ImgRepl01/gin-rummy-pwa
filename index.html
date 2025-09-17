@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Trigger update -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gin Rummy</title>
@@ -389,14 +388,27 @@
     </div>
 
     <script>
-        // Register the service worker
+        // Register the service worker with a more robust update check
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then((registration) => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                }).catch((error) => {
-                    console.error('Service Worker registration failed:', error);
-                });
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => {
+                        console.log('Service Worker registered with scope:', reg.scope);
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // A new service worker is installed and ready to take over
+                                    console.log('New content available, please refresh.');
+                                    showMessageBox("Update Available", "A new version of the app is available. Click OK to refresh.", false);
+                                    messageBoxCloseButton.onclick = () => window.location.reload();
+                                }
+                            });
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Service Worker registration failed:', err);
+                    });
             });
         }
         
@@ -959,4 +971,3 @@
     </script>
 </body>
 </html>
-
