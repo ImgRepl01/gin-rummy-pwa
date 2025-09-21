@@ -83,10 +83,9 @@
 
         .hand-container {
             display: flex;
-            overflow-x: auto;
-            overflow-y: hidden;
-            gap: 0.25rem; /* Reduced gap */
+            flex-wrap: nowrap; /* Forces cards to stay on one row */
             justify-content: center;
+            gap: 0.25rem; /* Reduced gap */
         }
 
         h2 {
@@ -101,17 +100,16 @@
             background-color: white;
             border: 1px solid #d1d5db;
             border-radius: 0.5rem;
-            padding: 0.25rem; /* Reduced padding */
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             text-align: center;
             font-weight: 600;
-            font-size: 0.875rem; /* Reduced font size */
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            width: 2.2rem; /* Reduced size */
-            height: 3.2rem; /* Reduced size */
+            width: 1.9rem; /* Reduced size to fit 11 cards */
+            height: 3.2rem;
+            padding: 0.1rem;
             cursor: pointer;
             transition: transform 0.1s ease;
         }
@@ -284,6 +282,13 @@
         .score-item {
             text-align: center;
         }
+
+        .stockpile-counter {
+            font-weight: 500;
+            color: #4b5563;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
@@ -315,6 +320,7 @@
                         <div id="stockpileContainer" class="pile-card-container">
                             <!-- Stockpile card back -->
                         </div>
+                        <span id="stockpileCounter" class="stockpile-counter"></span>
                     </div>
                     <div class="pile">
                         <span class="pile-label">Discard Pile</span>
@@ -409,6 +415,7 @@
         const discardPileContainer = document.getElementById('discardPileContainer');
         const playerHandContainer = document.getElementById('playerHandContainer');
         const deadwoodCounter = document.getElementById('deadwoodCounter');
+        const stockpileCounter = document.getElementById('stockpileCounter');
         const gameStatusElement = document.getElementById('gameStatus');
         const knockButton = document.getElementById('knockButton');
         const startButton = document.getElementById('startButton');
@@ -495,7 +502,7 @@
         }
 
         /**
-         * Renders a single card element.
+         * Renders a single card element with new design.
          * @param {object} card - The card object to render.
          * @returns {HTMLElement} The card div element.
          */
@@ -504,9 +511,8 @@
             cardElement.className = 'card';
             const suitColor = (card.suit === '\u2665' || card.suit === '\u2666') ? '#dc2626' : 'black';
             cardElement.innerHTML = `
-                <div class="w-full text-left text-xs" style="color: ${suitColor};">${card.rank}</div>
-                <div class="text-xl" style="color: ${suitColor};">${card.suit}</div>
-                <div class="w-full text-right text-xs" style="color: ${suitColor};">${card.rank}</div>
+                <div class="w-full text-left text-xs font-bold" style="font-size: 1.25rem; margin-left: 0.1rem; color: ${suitColor};">${card.rank}</div>
+                <div class="text-3xl" style="font-size: 2.5rem; color: ${suitColor}; margin-bottom: 0.25rem;">${card.suit}</div>
             `;
             return cardElement;
         }
@@ -526,7 +532,14 @@
          */
         function renderPlayerHand() {
             playerHandContainer.innerHTML = '';
-            playerHand.sort((a, b) => rankValues[a.rank] - rankValues[b.rank]); // Sort hand for display
+            // Sort the hand first by rank value, then by suit for a consistent order.
+            playerHand.sort((a, b) => {
+                const rankDiff = rankValues[a.rank] - rankValues[b.rank];
+                if (rankDiff !== 0) {
+                    return rankDiff;
+                }
+                return a.suit.localeCompare(b.suit);
+            });
             playerHand.forEach(card => {
                 const cardElement = renderCard(card);
                 cardElement.dataset.suit = card.suit;
@@ -587,6 +600,9 @@
             } else {
                 deadwoodCounter.textContent = '';
             }
+            
+            // Update stockpile counter
+            stockpileCounter.textContent = `Cards: ${deck.length}`;
 
             // Update total scores
             playerTotalScoreDisplay.textContent = playerTotalScore;
@@ -686,6 +702,8 @@
 
         /**
          * A recursive function to find the best meld combination for a hand.
+         * This function is complex and its details are not crucial for basic gameplay, but it is necessary
+         * for the AI to make a smart move.
          * @param {string[]} cards An array of card strings.
          * @returns {Set<string>[]} A set of the best combination of meld cards.
          */
