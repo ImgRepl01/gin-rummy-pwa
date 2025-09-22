@@ -532,7 +532,7 @@
          */
         function renderPlayerHand() {
             playerHandContainer.innerHTML = '';
-            // Sort the hand first by rank value, then by suit for a consistent order.
+            // Sort the hand by rank value first, then by suit.
             playerHand.sort((a, b) => {
                 const rankDiff = rankValues[a.rank] - rankValues[b.rank];
                 if (rankDiff !== 0) {
@@ -618,120 +618,78 @@
                 });
             }
         }
-
+        
         /**
-         * Calculates the deadwood score of a hand.
-         * This version uses a more optimal algorithm to find the best meld combination.
+         * Finds the melds and deadwood in a hand using a greedy approach.
+         * This version is simpler and more reliable than a complex recursive algorithm.
          * @param {array} hand The hand of cards to check.
          * @returns {object} An object containing the score and the deadwood cards.
          */
         function calculateDeadwood(hand) {
-            if (hand.length === 0) return { score: 0, deadwood: [] };
-
-            const sortedHand = [...hand].sort((a, b) => {
-                if (a.suit !== b.suit) return a.suit.localeCompare(b.suit);
-                return rankValues[a.rank] - rankValues[b.rank];
-            });
-
-            const uniqueCards = sortedHand.map(card => `${card.rank}${card.suit}`);
-            const meldCombinations = findBestMeldCombination(uniqueCards);
-            const bestMeldSet = meldCombinations[0] || new Set();
-
-            const deadwood = sortedHand.filter(card => !bestMeldSet.has(`${card.rank}${card.suit}`));
-            const score = deadwood.reduce((sum, card) => sum + rankValues[card.rank], 0);
-
-            return { score, deadwood };
-        }
-
-        /**
-         * Finds all possible melds in a hand.
-         * @param {string[]} hand An array of card strings (e.g., "A♠️", "2♣️").
-         * @returns {Set<string>[]} An array of sets, where each set represents a meld.
-         */
-        function findAllMelds(hand) {
+            // Create a copy to not modify the original hand
+            const tempHand = [...hand];
             const melds = [];
-            const cards = hand.map(c => ({ rank: c.slice(0, -1), suit: c.slice(-1) }));
+            const deadwood = [];
+            
+            // First, find and remove all sets
+            const ranks = {};
+            tempHand.forEach(card => {
+                ranks[card.rank] = ranks[card.rank] || [];
+                ranks[card.rank].push(card);
+            });
+            
+            for (const rank in ranks) {
+                while (ranks[rank].length >= 3) {
+                    const meld = ranks[rank].splice(0, 3);
+                    melds.push(meld);
+                }
+            }
 
-            // Find all sets
-            const rankGroups = cards.reduce((acc, card) => {
-                acc[card.rank] = (acc[card.rank] || []);
-                acc[card.rank].push(card);
-                return acc;
-            }, {});
-
-            for (const rank in rankGroups) {
-                const group = rankGroups[rank];
-                for (let i = 0; i <= group.length - 3; i++) {
-                    for (let j = i + 1; j <= group.length - 2; j++) {
-                        for (let k = j + 1; k <= group.length - 1; k++) {
-                            melds.push(new Set([
-                                `${group[i].rank}${group[i].suit}`,
-                                `${group[j].rank}${group[j].suit}`,
-                                `${group[k].rank}${group[k].suit}`
-                            ]));
-                        }
+            // Put remaining cards back into a single array
+            let remainingCards = [];
+            for (const rank in ranks) {
+                remainingCards = remainingCards.concat(ranks[rank]);
+            }
+            
+            // Now, find and remove all runs
+            const suits = {};
+            remainingCards.forEach(card => {
+                suits[card.suit] = suits[card.suit] || [];
+                suits[card.suit].push(card);
+            });
+            
+            for (const suit in suits) {
+                suits[suit].sort((a, b) => rankValues[a.rank] - rankValues[b.rank]);
+                
+                let i = 0;
+                while (i < suits[suit].length - 2) {
+                    let j = i + 1;
+                    while (j < suits[suit].length && rankValues[suits[suit][j].rank] === rankValues[suits[suit][j - 1].rank] + 1) {
+                        j++;
+                    }
+                    if (j - i >= 3) {
+                        const meld = suits[suit].slice(i, j);
+                        melds.push(meld);
+                        i = j;
+                    } else {
+                        i++;
                     }
                 }
             }
             
-            // Find all runs
-            const suitGroups = cards.reduce((acc, card) => {
-                acc[card.suit] = (acc[card.suit] || []);
-                acc[card.suit].push(card);
-                return acc;
-            }, {});
-
-            for (const suit in suitGroups) {
-                const group = suitGroups[suit].sort((a, b) => rankValues[a.rank] - rankValues[b.rank]);
-                for (let i = 0; i <= group.length - 3; i++) {
-                    for (let j = i + 2; j < group.length; j++) {
-                        const isRun = group.slice(i, j + 1).every((card, index, arr) => {
-                            if (index === 0) return true;
-                            return rankValues[card.rank] === rankValues[arr[index - 1].rank] + 1;
-                        });
-
-                        if (isRun) {
-                            melds.push(new Set(group.slice(i, j + 1).map(c => `${c.rank}${c.suit}`)));
-                        }
-                    }
-                }
-            }
-
-            return melds;
-        }
-
-        /**
-         * A recursive function to find the best meld combination for a hand.
-         * This function is complex and its details are not crucial for basic gameplay, but it is necessary
-         * for the AI to make a smart move.
-         * @param {string[]} cards An array of card strings.
-         * @returns {Set<string>[]} A set of the best combination of meld cards.
-         */
-        function findBestMeldCombination(cards) {
-            const allMelds = findAllMelds(cards);
-            let bestCombination = [];
-
-            function recurse(remainingCards, currentCombination) {
-                if (currentCombination.length > bestCombination.length) {
-                    bestCombination = currentCombination;
-                }
-
-                allMelds.forEach(meld => {
-                    const meldCards = Array.from(meld);
-                    const newRemaining = remainingCards.filter(card => !meld.has(card));
-                    
-                    if (newRemaining.length < remainingCards.length) {
-                        const newCombination = [...currentCombination, meld];
-                        recurse(newRemaining, newCombination);
-                    }
-                });
-            }
+            // Collect all cards from melds to find deadwood
+            const meldedCards = new Set();
+            melds.forEach(meld => meld.forEach(card => meldedCards.add(card)));
             
-            recurse(cards, []);
+            let deadwoodScore = 0;
+            tempHand.forEach(card => {
+                if (!meldedCards.has(card)) {
+                    deadwood.push(card);
+                    deadwoodScore += rankValues[card.rank];
+                }
+            });
             
-            // Flatten the array of sets into a single set
-            const bestMeldSet = new Set(bestCombination.flatMap(meldSet => Array.from(meldSet)));
-            return [bestMeldSet];
+            return { score: deadwoodScore, deadwood };
         }
 
         /**
